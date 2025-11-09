@@ -5,6 +5,23 @@
 http://localhost:8080
 ```
 
+## Prerequisites
+
+### MongoDB Setup
+This API requires MongoDB to be running locally.
+
+**Installation:**
+- Install MongoDB Community Edition
+- Start MongoDB service: `mongod`
+- Default connection: `mongodb://localhost:27017`
+- Database: `taskmanager`
+- Collection: `tasks`
+
+**Dependencies:**
+```bash
+go mod tidy
+```
+
 ## Endpoints
 
 ### 1. Get All Tasks
@@ -169,17 +186,19 @@ Deletes a task by its ID.
   "id": "string",
   "title": "string", 
   "description": "string",
-  "due_date": "string (YYYY-MM-DD format)",
+  "due_date": "string (ISO 8601 format)",
   "status": "string"
 }
 ```
 
 **Field Descriptions:**
-- `id`: Unique identifier for the task
+- `id`: MongoDB ObjectID (24-character hex string)
 - `title`: Task title
 - `description`: Detailed description of the task
-- `due_date`: Due date in YYYY-MM-DD format
+- `due_date`: Due date in ISO 8601 format
 - `status`: Current status (e.g., "Pending", "In Progress", "Completed")
+
+**Note:** Task IDs are automatically generated MongoDB ObjectIDs when creating new tasks.
 
 ## Status Codes
 - `200 OK`: Request successful
@@ -198,7 +217,7 @@ curl -X GET http://localhost:8080/tasks
 
 **Get task by ID:**
 ```bash
-curl -X GET http://localhost:8080/tasks/1
+curl -X GET http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0
 ```
 
 **Create new task:**
@@ -206,27 +225,26 @@ curl -X GET http://localhost:8080/tasks/1
 curl -X POST http://localhost:8080/tasks \
   -H "Content-Type: application/json" \
   -d '{
-    "id": "4",
     "title": "New Task",
     "description": "Task description", 
-    "due_date": "2024-01-20",
+    "due_date": "2024-01-20T00:00:00Z",
     "status": "Pending"
   }'
 ```
 
 **Update task:**
 ```bash
-curl -X PUT http://localhost:8080/tasks/1 \
+curl -X PUT http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0 \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated Task",
     "description": "Updated description",
-    "due_date": "2024-01-25", 
+    "due_date": "2024-01-25T00:00:00Z", 
     "status": "In Progress"
   }'
 ```
 
 **Delete task:**
 ```bash
-curl -X DELETE http://localhost:8080/tasks/1
+curl -X DELETE http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0
 ```

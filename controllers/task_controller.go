@@ -40,13 +40,14 @@ func UpdateTaskController(c *gin.Context)  {
 	data.UpdateTask(id,*task)
 	c.IndentedJSON(http.StatusOK, task)
 }
-func DeleteTaskController(c *gin.Context)  {
+
+func DeleteTaskController(c *gin.Context) {
 	id := c.Param("id")
 	err := data.DeleteTask(id)
 	if err != nil {
 		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "task not found"})
 		return
 	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "task deleted"})
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "task deleted successfully"})
 }
 
