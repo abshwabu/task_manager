@@ -1,68 +1,86 @@
 package data
 
 import (
-	"example/task_manager/models"
-	"sync"
-	"time"
+	"context"
 	"errors"
+	"example/task_manager/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 )
 
-var (
-	tasks = []models.Task {
-		{ID: "1", Title: "Task 1", Description: "First task", DueDate: time.Now(), Status: "Pending"},
-    {ID: "2", Title: "Task 2", Description: "Second task", DueDate: time.Now().AddDate(0, 0, 1), Status: "In Progress"},
-    {ID: "3", Title: "Task 3", Description: "Third task", DueDate: time.Now().AddDate(0, 0, 2), Status: "Completed"},
+var collection *mongo.Collection
+
+func InitMongoDB() {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
+	if err != nil {
+		log.Fatal(err)
 	}
-	mutex sync.Mutex
-)
-
-func GetAllTasks() []models.Task  {
-	mutex.Lock()
-	defer mutex.Unlock()
-	return append([]models.Task(nil), tasks...)
-
+	collection = client.Database("taskmanager").Collection("tasks")
 }
 
-func GetTaskByID(id string) (*models.Task, error)  {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	for _, task := range tasks{
-		if task.ID == id  {
-			copy := task 
-			return &copy, nil
-		}
+func GetAllTasks() []models.Task {
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		log.Fatal(err)
 	}
-	return nil, errors.New("task not found")
+	var tasks []models.Task
+	if err = cursor.All(context.TODO(), &tasks); err != nil {
+		log.Fatal(err)
+	}
+	return tasks
+}
+
+func GetTaskByID(id string) (*models.Task, error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, errors.New("invalid task ID")
+	}
+	var task models.Task
+	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&task)
+	if err != nil {
+		return nil, errors.New("task not found")
+	}
+	return &task, nil
 }
 
 func AddTask(newTask models.Task) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	tasks = append(tasks, newTask)
-}
-func UpdateTask(id string,updated models.Task) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks[i].Title = updated.Title
-			tasks[i].Description = updated.Description
-			return nil
-		}
+	newTask.ID = primitive.NewObjectID()
+	_, err := collection.InsertOne(context.TODO(), newTask)
+	if err != nil {
+		log.Fatal(err)
 	}
-	return errors.New("task not found")
+}
+
+func UpdateTask(id string, updated models.Task) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return errors.New("invalid task ID")
+	}
+	update := bson.M{"$set": bson.M{"title": updated.Title, "description": updated.Description}}
+	result, err := collection.UpdateOne(context.TODO(), bson.M{"_id": objID}, update)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return errors.New("task not found")
+	}
+	return nil
 }
 
 func DeleteTask(id string) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-	for i,task := range tasks {
-		if task.ID == id {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			return nil
-		}
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return errors.New("invalid task ID")
 	}
-	return errors.New("task not found")
+	result, err := collection.DeleteOne(context.TODO(), bson.M{"_id": objID})
+	if err != nil {
+		return err
+	}
+	if result.DeletedCount == 0 {
+		return errors.New("task not found")
+	}
+	return nil
 }
