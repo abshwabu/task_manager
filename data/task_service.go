@@ -3,32 +3,40 @@ package data
 import (
 	"context"
 	"errors"
-	"example/task_manager/models"
+	"task_manager/database"
+	"task_manager/models"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 )
 
-var collection *mongo.Collection
+var taskCollection *mongo.Collection
 
-func InitMongoDB() {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb://localhost:27017"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	collection = client.Database("taskmanager").Collection("tasks")
+func InitTaskService() {
+	taskCollection = database.GetCollection("taskmanager", "tasks")
 }
 
 func GetAllTasks() []models.Task {
-	cursor, err := collection.Find(context.TODO(), bson.D{})
+	cursor, err := taskCollection.Find(context.TODO(), bson.D{})
 	if err != nil {
-		log.Fatal(err)
+		return []models.Task{}
 	}
 	var tasks []models.Task
 	if err = cursor.All(context.TODO(), &tasks); err != nil {
-		log.Fatal(err)
+		return []models.Task{}
+	}
+	return tasks
+}
+
+func GetTasksByUserID(userID primitive.ObjectID) []models.Task {
+	cursor, err := taskCollection.Find(context.TODO(), bson.M{"userid": userID})
+	if err != nil {
+		return []models.Task{}
+	}
+	var tasks []models.Task
+	if err = cursor.All(context.TODO(), &tasks); err != nil {
+		return []models.Task{}
 	}
 	return tasks
 }
@@ -39,19 +47,20 @@ func GetTaskByID(id string) (*models.Task, error) {
 		return nil, errors.New("invalid task ID")
 	}
 	var task models.Task
-	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&task)
+	err = taskCollection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&task)
 	if err != nil {
 		return nil, errors.New("task not found")
 	}
 	return &task, nil
 }
 
-func AddTask(newTask models.Task) {
+func AddTask(newTask models.Task) (primitive.ObjectID, error) {
 	newTask.ID = primitive.NewObjectID()
-	_, err := collection.InsertOne(context.TODO(), newTask)
+	result, err := taskCollection.InsertOne(context.TODO(), newTask)
 	if err != nil {
-		log.Fatal(err)
+		return primitive.NilObjectID, err
 	}
+	return result.InsertedID.(primitive.ObjectID), nil
 }
 
 func UpdateTask(id string, updated models.Task) error {
@@ -59,8 +68,8 @@ func UpdateTask(id string, updated models.Task) error {
 	if err != nil {
 		return errors.New("invalid task ID")
 	}
-	update := bson.M{"$set": bson.M{"title": updated.Title, "description": updated.Description}}
-	result, err := collection.UpdateOne(context.TODO(), bson.M{"_id": objID}, update)
+	update := bson.M{"$set": bson.M{"title": updated.Title, "description": updated.Description, "duedate": updated.DueDate, "status": updated.Status}}
+	result, err := taskCollection.UpdateOne(context.TODO(), bson.M{"_id": objID}, update)
 	if err != nil {
 		return err
 	}
@@ -75,7 +84,7 @@ func DeleteTask(id string) error {
 	if err != nil {
 		return errors.New("invalid task ID")
 	}
-	result, err := collection.DeleteOne(context.TODO(), bson.M{"_id": objID})
+	result, err := taskCollection.DeleteOne(context.TODO(), bson.M{"_id": objID})
 	if err != nil {
 		return err
 	}

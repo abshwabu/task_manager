@@ -1,250 +1,171 @@
 # Task Manager API Documentation
 
-## Base URL
-```
-http://localhost:8080
-```
+## Authentication
 
-## Prerequisites
+### Register
 
-### MongoDB Setup
-This API requires MongoDB to be running locally.
+Creates a new user account. The first user to register will be an admin.
 
-**Installation:**
-- Install MongoDB Community Edition
-- Start MongoDB service: `mongod`
-- Default connection: `mongodb://localhost:27017`
-- Database: `taskmanager`
-- Collection: `tasks`
-
-**Dependencies:**
-```bash
-go mod tidy
-```
-
-## Endpoints
-
-### 1. Get All Tasks
-**GET** `/tasks`
-
-Returns a list of all tasks.
-
-**Response:**
-- **Status Code:** 200 OK
-- **Content-Type:** application/json
+- **URL:** `/auth/register`
+- **Method:** `POST`
+- **Request Body:**
 
 ```json
-[
+{
+  "username": "your_username",
+  "password": "your_password"
+}
+```
+
+- **Success Response:**
+
+  - **Code:** 201 Created
+  - **Content:**
+
+  ```json
   {
-    "id": "1",
-    "title": "Task 1",
-    "description": "First task",
-    "due_date": "2024-01-15",
-    "status": "Pending"
-  },
-  {
-    "id": "2",
-    "title": "Task 2", 
-    "description": "Second task",
-    "due_date": "2024-01-16",
-    "status": "In Progress"
+    "message": "user created successfully"
   }
-]
-```
+  ```
 
-### 2. Get Task by ID
-**GET** `/tasks/{id}`
+### Login
 
-Returns a specific task by its ID.
+Authenticates a user and returns a JWT token.
 
-**Parameters:**
-- `id` (path parameter) - Task ID
-
-**Response:**
-- **Status Code:** 200 OK (success) / 404 Not Found (task not found)
-- **Content-Type:** application/json
-
-**Success Response:**
-```json
-{
-  "id": "1",
-  "title": "Task 1",
-  "description": "First task", 
-  "due_date": "2024-01-15",
-  "status": "Pending"
-}
-```
-
-**Error Response:**
-```json
-{
-  "message": "task not found"
-}
-```
-
-### 3. Create New Task
-**POST** `/tasks`
-
-Creates a new task.
-
-**Request Body:**
-```json
-{
-  "id": "4",
-  "title": "New Task",
-  "description": "Task description",
-  "due_date": "2024-01-20",
-  "status": "Pending"
-}
-```
-
-**Response:**
-- **Status Code:** 201 Created
-- **Content-Type:** application/json
+- **URL:** `/auth/login`
+- **Method:** `POST`
+- **Request Body:**
 
 ```json
 {
-  "id": "4",
-  "title": "New Task",
-  "description": "Task description",
-  "due_date": "2024-01-20", 
-  "status": "Pending"
+  "username": "your_username",
+  "password": "your_password"
 }
 ```
 
-### 4. Update Task
-**PUT** `/tasks/{id}`
+- **Success Response:**
 
-Updates an existing task.
+  - **Code:** 200 OK
+  - **Content:**
 
-**Parameters:**
-- `id` (path parameter) - Task ID
+  ```json
+  {
+    "token": "your_jwt_token"
+  }
+  ```
 
-**Request Body:**
+## Tasks
+
+All task endpoints require a valid JWT token in the `Authorization` header.
+
+Example: `Authorization: Bearer your_jwt_token`
+
+### Get All Tasks
+
+- **URL:** `/api/tasks`
+- **Method:** `GET`
+- **Success Response:**
+
+  - **Code:** 200 OK
+  - **Content:** An array of task objects.
+
+### Get Task by ID
+
+- **URL:** `/api/tasks/:id`
+- **Method:** `GET`
+- **Success Response:**
+
+  - **Code:** 200 OK
+  - **Content:** A task object.
+
+### Create Task (Admin only)
+
+- **URL:** `/api/tasks`
+- **Method:** `POST`
+- **Request Body:**
+
 ```json
 {
-  "title": "Updated Task Title",
-  "description": "Updated description",
-  "due_date": "2024-01-25",
-  "status": "In Progress"
+  "title": "Task Title",
+  "description": "Task Description",
+  "due_date": "2025-12-31T23:59:59Z",
+  "status": "pending"
 }
 ```
 
-**Response:**
-- **Status Code:** 200 OK (success) / 404 Not Found (task not found)
-- **Content-Type:** application/json
+- **Success Response:**
 
-**Success Response:**
+  - **Code:** 201 Created
+  - **Content:**
+
+  ```json
+  {
+    "id": "task_id"
+  }
+  ```
+
+### Update Task (Admin only)
+
+- **URL:** `/api/tasks/:id`
+- **Method:** `PUT`
+- **Request Body:**
+
 ```json
 {
-  "id": "1",
-  "title": "Updated Task Title",
-  "description": "Updated description",
-  "due_date": "2024-01-25",
-  "status": "In Progress"
+  "title": "Updated Title",
+  "description": "Updated Description",
+  "due_date": "2026-01-15T23:59:59Z",
+  "status": "in-progress"
 }
 ```
 
-**Error Response:**
+- **Success Response:**
+
+  - **Code:** 200 OK
+  - **Content:**
+
+  ```json
+  {
+    "message": "task updated successfully"
+  }
+  ```
+
+### Delete Task (Admin only)
+
+- **URL:** `/api/tasks/:id`
+- **Method:** `DELETE`
+- **Success Response:**
+
+  - **Code:** 200 OK
+  - **Content:**
+
+  ```json
+  {
+    "message": "task deleted successfully"
+  }
+  ```
+
+## Admin
+
+### Promote User (Admin only)
+
+- **URL:** `/api/admin/promote`
+- **Method:** `POST`
+- **Request Body:**
+
 ```json
 {
-  "message": "task not found"
+  "username": "username_to_promote"
 }
 ```
 
-### 5. Delete Task
-**DELETE** `/tasks/{id}`
+- **Success Response:**
 
-Deletes a task by its ID.
+  - **Code:** 200 OK
+  - **Content:**
 
-**Parameters:**
-- `id` (path parameter) - Task ID
-
-**Response:**
-- **Status Code:** 200 OK (success) / 404 Not Found (task not found)
-- **Content-Type:** application/json
-
-**Success Response:**
-```json
-{
-  "message": "task deleted successfully"
-}
-```
-
-**Error Response:**
-```json
-{
-  "message": "task not found"
-}
-```
-
-## Data Model
-
-### Task Object
-```json
-{
-  "id": "string",
-  "title": "string", 
-  "description": "string",
-  "due_date": "string (ISO 8601 format)",
-  "status": "string"
-}
-```
-
-**Field Descriptions:**
-- `id`: MongoDB ObjectID (24-character hex string)
-- `title`: Task title
-- `description`: Detailed description of the task
-- `due_date`: Due date in ISO 8601 format
-- `status`: Current status (e.g., "Pending", "In Progress", "Completed")
-
-**Note:** Task IDs are automatically generated MongoDB ObjectIDs when creating new tasks.
-
-## Status Codes
-- `200 OK`: Request successful
-- `201 Created`: Resource created successfully
-- `404 Not Found`: Resource not found
-- `400 Bad Request`: Invalid request body
-
-## Example Usage
-
-### cURL Examples
-
-**Get all tasks:**
-```bash
-curl -X GET http://localhost:8080/tasks
-```
-
-**Get task by ID:**
-```bash
-curl -X GET http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0
-```
-
-**Create new task:**
-```bash
-curl -X POST http://localhost:8080/tasks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "New Task",
-    "description": "Task description", 
-    "due_date": "2024-01-20T00:00:00Z",
-    "status": "Pending"
-  }'
-```
-
-**Update task:**
-```bash
-curl -X PUT http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Updated Task",
-    "description": "Updated description",
-    "due_date": "2024-01-25T00:00:00Z", 
-    "status": "In Progress"
-  }'
-```
-
-**Delete task:**
-```bash
-curl -X DELETE http://localhost:8080/tasks/65a1b2c3d4e5f6789abcdef0
-```
+  ```json
+  {
+    "message": "user promoted successfully"
+  }
+  ```

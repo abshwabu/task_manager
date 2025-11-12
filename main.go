@@ -1,12 +1,16 @@
 package main
 
 import (
-	"example/task_manager/data"
-	"example/task_manager/router"
+	"task_manager/data"
+	"task_manager/database"
+	"task_manager/router"
 )
 
 func main() {
-	data.InitMongoDB()
+	database.Init()
+	data.InitUserService()
+	data.InitTaskService()
+
 	r := router.SetupRouter()
 	r.Run(":8080")
 }
