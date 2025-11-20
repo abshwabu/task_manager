@@ -1,10 +1,10 @@
-module task_manager
+module example/task_manager
 
 go 1.25.3
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.11.0
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	go.mongodb.org/mongo-driver v1.17.6
 	golang.org/x/crypto v0.44.0
 )
